@@ -1,0 +1,99 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: event_ticketing_test
+          MYSQL_ROOT_PASSWORD: Pass@123
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pPass@123"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y default-libmysqlclient-dev pkg-config
+
+      - name: Install Python dependencies
+        run: pip install -r requirements/dev.txt
+
+      - name: Run migrations
+        env:
+          SECRET_KEY: test-secret-key
+          DB_NAME: event_ticketing_test
+          DB_USER: root
+          DB_PASSWORD: Pass@123
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          REDIS_URL: redis://localhost:6379/0
+          CELERY_BROKER_URL: redis://localhost:6379/0
+          DJANGO_SETTINGS_MODULE: config.settings.dev
+        run: python manage.py migrate
+
+      - name: Run tests
+        env:
+          SECRET_KEY: test-secret-key
+          DB_NAME: event_ticketing_test
+          DB_USER: root
+          DB_PASSWORD: Pass@123
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          REDIS_URL: redis://localhost:6379/0
+          CELERY_BROKER_URL: redis://localhost:6379/0
+          DJANGO_SETTINGS_MODULE: config.settings.dev
+        run: pytest --tb=short -v
+
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /opt/event_ticketing
+            git pull origin main
+            docker-compose -f docker-compose.prod.yml build
+            docker-compose -f docker-compose.prod.yml up -d
+            docker-compose -f docker-compose.prod.yml exec -T web python manage.py migrate --settings=config.settings.prod
+            docker-compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput --settings=config.settings.prod
+            echo "Deployment complete!"
