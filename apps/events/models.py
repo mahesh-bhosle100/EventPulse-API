@@ -80,6 +80,7 @@ class EventReview(models.Model):
 
     class Meta:
         db_table = 'event_reviews'
+        ordering = ['-created_at']
         unique_together = ['event', 'user']
         indexes = [
             models.Index(fields=['event']),

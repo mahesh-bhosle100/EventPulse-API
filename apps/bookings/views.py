@@ -30,6 +30,7 @@ class BookingCreateView(APIView):
     Initiates Razorpay payment order.
     """
     permission_classes = [IsAuthenticated]
+    throttle_scope = 'payment'
 
     def post(self, request):
         serializer = BookingCreateSerializer(data=request.data)
@@ -42,6 +43,9 @@ class BookingCreateView(APIView):
             ticket_type = TicketType.objects.select_related('event').get(pk=ticket_type_id)
         except TicketType.DoesNotExist:
             return Response({'error': 'Ticket type not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        if ticket_type.event.status != ticket_type.event.PUBLISHED:
+            return Response({'error': 'Event is not available for booking'}, status=status.HTTP_400_BAD_REQUEST)
 
         if not ticket_type.is_available:
             return Response({'error': 'Tickets are not available for sale'}, status=status.HTTP_400_BAD_REQUEST)
@@ -143,6 +147,7 @@ class PaymentVerifyView(APIView):
     Triggers Celery task to generate PDF ticket and send email.
     """
     permission_classes = [IsAuthenticated]
+    throttle_scope = 'payment'
 
     def post(self, request):
         serializer = PaymentVerifySerializer(data=request.data)
@@ -176,6 +181,12 @@ class PaymentVerifyView(APIView):
             payment.status = Payment.FAILED
             payment.save()
             return Response({'error': 'Payment verification failed'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if payment.status == Payment.SUCCESS:
+            return Response({
+                'message': 'Payment already verified',
+                'booking': BookingSerializer(payment.booking).data
+            })
 
         # Update payment and booking
         payment.razorpay_payment_id = razorpay_payment_id

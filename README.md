@@ -14,6 +14,7 @@ Beginner-friendly backend API built with Django REST Framework. It supports even
 - QR: qrcode
 - Docs: drf-spectacular (Swagger)
 - Docker: Docker + Docker Compose
+- Quality: Ruff + Black + isort
 
 ## Quick Start (Docker)
 1. Copy env file:
@@ -38,6 +39,7 @@ docker-compose exec web python manage.py createsuperuser
 - Admin: http://localhost:8001/admin/
 
 Note: This repo maps the API to port 8001 to avoid conflicts on port 8000.
+Note: `.env` is optimized for local runs (localhost). Docker overrides DB/Redis/Celery hosts automatically, so no env swapping is needed.
 
 ## Run Locally (No Docker)
 ```bash
@@ -61,6 +63,13 @@ celery -A config beat --loglevel=info
 
 # Start Django
 python manage.py runserver
+```
+
+## Quality Checks
+```bash
+ruff check .
+black .
+isort .
 ```
 
 ## API Endpoints (Summary)
@@ -123,6 +132,7 @@ POST   /api/checkin/validate/
 ```
 event_ticketing/
   apps/
+    common/
     users/
     events/
     tickets/
@@ -135,4 +145,5 @@ event_ticketing/
     celery.py
   docker/
   requirements/
+  pyproject.toml
 ```

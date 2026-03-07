@@ -43,6 +43,7 @@ class ValidateCheckinView(APIView):
     Uses Redis cache to prevent duplicate scan in race conditions.
     """
     permission_classes = [IsOrganizer]
+    throttle_scope = 'checkin'
 
     def post(self, request):
         token = request.data.get('token')
@@ -70,6 +71,10 @@ class ValidateCheckinView(APIView):
                 'error': 'Ticket already used',
                 'used_at': qr.used_at,
             }, status=status.HTTP_400_BAD_REQUEST)
+
+        if qr.booking.event.organizer != request.user:
+            cache.delete(lock_key)
+            return Response({'error': 'You can only check-in attendees for your events'}, status=status.HTTP_403_FORBIDDEN)
 
         if qr.booking.status != Booking.CONFIRMED:
             cache.delete(lock_key)

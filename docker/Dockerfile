@@ -5,12 +5,7 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Install system dependencies for mysqlclient
-RUN apt-get update && apt-get install -y \
-    default-libmysqlclient-dev \
-    gcc \
-    pkg-config \
-    && rm -rf /var/lib/apt/lists/*
+# PyMySQL is pure-Python, so no OS-level MySQL client libs are required.
 
 COPY requirements/ ./requirements/
 RUN pip install --no-cache-dir -r requirements/dev.txt

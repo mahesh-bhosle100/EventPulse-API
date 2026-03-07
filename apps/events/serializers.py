@@ -1,5 +1,8 @@
 from rest_framework import serializers
+from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
+from apps.common.images import optimize_image_file
+from apps.common.validators import validate_image_upload
 from .models import Event, Category, EventReview
 
 
@@ -48,7 +51,37 @@ class EventDetailSerializer(serializers.ModelSerializer):
         if attrs.get('start_datetime') and attrs.get('end_datetime'):
             if attrs['end_datetime'] <= attrs['start_datetime']:
                 raise serializers.ValidationError('end_datetime must be after start_datetime')
+        total_capacity = attrs.get('total_capacity')
+        if total_capacity is not None and total_capacity <= 0:
+            raise serializers.ValidationError('total_capacity must be greater than 0')
         return attrs
+
+    def validate_banner_image(self, value):
+        return validate_image_upload(value)
+
+    def create(self, validated_data):
+        image = validated_data.get('banner_image')
+        if image:
+            optimized = optimize_image_file(
+                image,
+                max_size=(settings.IMAGE_MAX_DIMENSION, settings.IMAGE_MAX_DIMENSION),
+                quality=settings.IMAGE_OPTIMIZE_QUALITY,
+            )
+            if optimized:
+                validated_data['banner_image'] = optimized
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        image = validated_data.get('banner_image')
+        if image:
+            optimized = optimize_image_file(
+                image,
+                max_size=(settings.IMAGE_MAX_DIMENSION, settings.IMAGE_MAX_DIMENSION),
+                quality=settings.IMAGE_OPTIMIZE_QUALITY,
+            )
+            if optimized:
+                validated_data['banner_image'] = optimized
+        return super().update(instance, validated_data)
 
 
 class EventReviewSerializer(serializers.ModelSerializer):

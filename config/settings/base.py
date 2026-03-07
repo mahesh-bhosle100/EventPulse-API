@@ -1,10 +1,14 @@
 from pathlib import Path
-from decouple import config
+from decouple import config, Csv
+
+
+def cast_bool(value):
+    return str(value).strip().lower() in ("1", "true", "yes", "on", "y", "t")
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 SECRET_KEY = config('SECRET_KEY')
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = config('DEBUG', default=False, cast=cast_bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost').split(',')
 
 DJANGO_APPS = [
@@ -122,6 +126,19 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
+    'DEFAULT_THROTTLE_CLASSES': (
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.ScopedRateThrottle',
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': config('THROTTLE_ANON', default='60/min'),
+        'user': config('THROTTLE_USER', default='120/min'),
+        'login': config('THROTTLE_LOGIN', default='10/min'),
+        'register': config('THROTTLE_REGISTER', default='10/min'),
+        'payment': config('THROTTLE_PAYMENT', default='20/min'),
+        'checkin': config('THROTTLE_CHECKIN', default='30/min'),
+    },
 }
 
 # JWT
@@ -149,6 +166,13 @@ CACHES = {
     }
 }
 
+CACHE_TTL = config('CACHE_TTL', default=60, cast=int)
+
+# Image upload limits and optimization
+IMAGE_MAX_UPLOAD_MB = config('IMAGE_MAX_UPLOAD_MB', default=5, cast=int)
+IMAGE_MAX_DIMENSION = config('IMAGE_MAX_DIMENSION', default=1600, cast=int)
+IMAGE_OPTIMIZE_QUALITY = config('IMAGE_OPTIMIZE_QUALITY', default=80, cast=int)
+
 # Cloudinary
 import cloudinary
 cloudinary.config(
@@ -162,13 +186,32 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
-EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=cast_bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@eventticket.com')
 
+# Security (enable in prod via envs)
+SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=False, cast=cast_bool)
+SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=0, cast=int)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = config('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=False, cast=cast_bool)
+SECURE_HSTS_PRELOAD = config('SECURE_HSTS_PRELOAD', default=False, cast=cast_bool)
+SECURE_REFERRER_POLICY = 'same-origin'
+SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=False, cast=cast_bool)
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=False, cast=cast_bool)
+SECURE_PROXY_SSL_HEADER = (
+    ('HTTP_X_FORWARDED_PROTO', 'https')
+    if config('USE_X_FORWARDED_PROTO', default=False, cast=cast_bool)
+    else None
+)
+
 # CORS
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=False, cast=cast_bool)
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='', cast=Csv())
+CORS_ALLOW_CREDENTIALS = config('CORS_ALLOW_CREDENTIALS', default=False, cast=cast_bool)
+
+# CSRF
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=Csv())
 
 # API docs
 SPECTACULAR_SETTINGS = {

@@ -1,10 +1,17 @@
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
+from django.conf import settings
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers
+from django.shortcuts import get_object_or_404
 from .models import TicketType
 from .serializers import TicketTypeSerializer
 from apps.users.permissions import IsOrganizer
 
 
+@method_decorator(cache_page(settings.CACHE_TTL), name='dispatch')
+@method_decorator(vary_on_headers('Authorization'), name='dispatch')
 class TicketTypeListCreateView(generics.ListCreateAPIView):
     """List ticket types for an event or create a new ticket type."""
     serializer_class = TicketTypeSerializer
@@ -21,7 +28,7 @@ class TicketTypeListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         from apps.events.models import Event
-        event = Event.objects.get(pk=self.kwargs['event_id'])
+        event = get_object_or_404(Event, pk=self.kwargs['event_id'])
         if event.organizer != self.request.user:
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("You can only add tickets to your own events")

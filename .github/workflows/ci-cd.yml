@@ -65,7 +65,7 @@ jobs:
           SECRET_KEY: test-secret-key
           DB_NAME: event_ticketing_test
           DB_USER: root
-          DB_PASSWORD: Pass@123
+          DB_PASSWORD: *****
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
           REDIS_URL: redis://localhost:6379/0
