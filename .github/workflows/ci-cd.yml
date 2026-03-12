@@ -60,7 +60,7 @@ jobs:
           DJANGO_SETTINGS_MODULE: config.settings.dev
         run: python manage.py migrate
 
-            - name: Run tests
+      - name: Run tests
         env:
           SECRET_KEY: test-secret-key
           DB_NAME: event_ticketing_test
