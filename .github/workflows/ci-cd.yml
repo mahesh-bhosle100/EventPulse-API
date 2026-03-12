@@ -72,8 +72,10 @@ jobs:
           CELERY_BROKER_URL: redis://localhost:6379/0
           DJANGO_SETTINGS_MODULE: config.settings.dev
         run: |
+          set +e
           pytest --tb=short -v
           code=$?
+          set -e
           if [ $code -eq 5 ]; then
             echo "No tests collected; treating as success."
             exit 0
