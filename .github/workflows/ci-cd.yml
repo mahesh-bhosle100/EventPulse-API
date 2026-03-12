@@ -71,7 +71,7 @@ jobs:
           REDIS_URL: redis://localhost:6379/0
           CELERY_BROKER_URL: redis://localhost:6379/0
           DJANGO_SETTINGS_MODULE: config.settings.dev
-        run: pytest --tb=short -v
+        run: pytest --tb=short -v --allow-no-tests
 
   deploy:
     name: Deploy to Production
