@@ -71,7 +71,14 @@ jobs:
           REDIS_URL: redis://localhost:6379/0
           CELERY_BROKER_URL: redis://localhost:6379/0
           DJANGO_SETTINGS_MODULE: config.settings.dev
-        run: pytest --tb=short -v --allow-no-tests
+        run: |
+          pytest --tb=short -v
+          code=$?
+          if [ $code -eq 5 ]; then
+            echo "No tests collected; treating as success."
+            exit 0
+          fi
+          exit $code
 
   deploy:
     name: Deploy to Production
