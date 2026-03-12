@@ -93,8 +93,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Check deploy secrets
+        id: deploy_check
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          if [ -n "$SERVER_HOST" ] && [ -n "$SERVER_USER" ] && [ -n "$SSH_PRIVATE_KEY" ]; then
+            echo "can_deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "can_deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Deploy via SSH
-        if: ${{ secrets.SERVER_HOST != '' && secrets.SERVER_USER != '' && secrets.SSH_PRIVATE_KEY != '' }}
+        if: steps.deploy_check.outputs.can_deploy == 'true'
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -109,5 +122,5 @@ jobs:
             docker-compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput --settings=config.settings.prod
             echo "Deployment complete!"
       - name: Skip deploy (missing secrets)
-        if: ${{ secrets.SERVER_HOST == '' || secrets.SERVER_USER == '' || secrets.SSH_PRIVATE_KEY == '' }}
+        if: steps.deploy_check.outputs.can_deploy != 'true'
         run: echo "Deploy skipped: missing SERVER_HOST/SERVER_USER/SSH_PRIVATE_KEY secrets."
