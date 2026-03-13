@@ -12,33 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SECRET_KEY: test-secret-key
-      DB_NAME: event_ticketing_test
-      DB_USER: root
-      DB_PASSWORD: Pass@123
-      DB_HOST: 127.0.0.1
-      DB_PORT: 3306
-      REDIS_URL: redis://localhost:6379/0
-      CELERY_BROKER_URL: redis://localhost:6379/0
-      DJANGO_SETTINGS_MODULE: config.settings.dev
-
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_DATABASE: event_ticketing_test
-          MYSQL_ROOT_PASSWORD: Pass@123
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost -pPass@123"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
+      DJANGO_SETTINGS_MODULE: config.settings.test
 
     steps:
       - name: Checkout code

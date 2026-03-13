@@ -7,7 +7,7 @@ def cast_bool(value):
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = config('SECRET_KEY', default='test-secret-key-change-this')
 DEBUG = config('DEBUG', default=False, cast=cast_bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost').split(',')
 
