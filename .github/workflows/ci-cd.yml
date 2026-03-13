@@ -89,4 +89,5 @@ jobs:
             echo "Deployment complete!"
       - name: Skip deploy (missing secrets)
         if: steps.deploy_check.outputs.can_deploy != 'true'
-        run: echo "Deploy skipped: missing SERVER_HOST/SERVER_USER/SSH_PRIVATE_KEY secrets."
+        run: |
+          echo "Deploy skipped: missing SERVER_HOST/SERVER_USER/SSH_PRIVATE_KEY secrets."
